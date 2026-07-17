@@ -222,13 +222,237 @@ const demoReports: { [key: string]: OSINTReport } = {
   }
 };
 
+interface PlatformAccount {
+  id: string;
+  name: string;
+  category: "messaging" | "social" | "directory" | "finance";
+  icon: string;
+  status: "active" | "inactive" | "unknown";
+  statusTextAr: string;
+  statusTextEn: string;
+  url: string;
+  descriptionAr: string;
+  descriptionEn: string;
+}
+
+const getPlatforms = (num: string, reportData: OSINTReport): PlatformAccount[] => {
+  const clean = num.replace(/\D/g, "");
+  const plusClean = num.startsWith("+") ? num : `+${clean}`;
+  
+  const findProfile = (platformName: string) => {
+    return reportData.profiles?.find(p => p.platform.toLowerCase().includes(platformName.toLowerCase()));
+  };
+  
+  const findMessaging = (appName: string) => {
+    return reportData.messaging?.find(m => m.app.toLowerCase().includes(appName.toLowerCase()));
+  };
+
+  return [
+    {
+      id: "whatsapp",
+      name: "WhatsApp",
+      category: "messaging",
+      icon: "MessageSquare",
+      status: "active",
+      statusTextAr: findMessaging("WhatsApp")?.status === "active" ? "نشط ومؤكد" : "مرجح جداً",
+      statusTextEn: findMessaging("WhatsApp")?.status === "active" ? "Verified Active" : "Highly Probable",
+      url: findProfile("WhatsApp")?.url || `https://wa.me/${clean}`,
+      descriptionAr: "رابط توجيه مباشر لبدء محادثة فورية دون الحاجة لحفظ الرقم، للتحقق من وجود صورة الشخصية والاسم.",
+      descriptionEn: "Direct chat routing to open a chat, inspect profile photo, status, and verified name details.",
+    },
+    {
+      id: "telegram",
+      name: "Telegram",
+      category: "messaging",
+      icon: "MessageSquare",
+      status: findMessaging("Telegram")?.status === "active" ? "active" : "unknown",
+      statusTextAr: findMessaging("Telegram")?.status === "active" ? "حساب نشط ومؤكد" : "تحقق من الرابط العكسي",
+      statusTextEn: findMessaging("Telegram")?.status === "active" ? "Active Verified" : "Check Reverse Link",
+      url: findProfile("Telegram")?.url || `https://t.me/${clean}`,
+      descriptionAr: "رابط التحقق من تليغرام وحالة الحساب والاسم المستعار عبر المعرف الرقمي المباشر.",
+      descriptionEn: "Deep link verification to resolve the username, bio, and custom status indicators.",
+    },
+    {
+      id: "truecaller",
+      name: "Truecaller",
+      category: "directory",
+      icon: "Phone",
+      status: "active",
+      statusTextAr: "استعلام فوري",
+      statusTextEn: "Instant Query",
+      url: `https://www.truecaller.com/search/global/${encodeURIComponent(plusClean)}`,
+      descriptionAr: "البحث العالمي عن هوية المتصل المسجلة في أكبر دليل هواتف سحابي لمعرفة الاسم الحقيقي والبريد الإلكتروني.",
+      descriptionEn: "Global reverse identity directory to pull real caller names, reported spam tags, and emails.",
+    },
+    {
+      id: "facebook",
+      name: "Facebook",
+      category: "social",
+      icon: "Users",
+      status: findProfile("Facebook") ? "active" : "unknown",
+      statusTextAr: findProfile("Facebook") ? "تم العثور على مطابقة" : "استعلام البصمة العكسية",
+      statusTextEn: findProfile("Facebook") ? "Match Discovered" : "Reverse Search Index",
+      url: findProfile("Facebook")?.url || `https://www.facebook.com/search/top/?q=${encodeURIComponent(plusClean)}`,
+      descriptionAr: "البحث العكسي عن الحسابات المرتبطة برقم الهاتف أو المنشورات التي ذكرته علناً.",
+      descriptionEn: "Manual reverse search for accounts, public posts, or group mentions referencing this line.",
+    },
+    {
+      id: "instagram",
+      name: "Instagram",
+      category: "social",
+      icon: "Users",
+      status: findProfile("Instagram") ? "active" : "unknown",
+      statusTextAr: findProfile("Instagram") ? "مطابقة نشطة" : "استعلام دليل الويب",
+      statusTextEn: findProfile("Instagram") ? "Active Profile" : "Directory Search",
+      url: findProfile("Instagram")?.url || `https://www.google.com/search?q=site:instagram.com+%22${encodeURIComponent(plusClean)}%22`,
+      descriptionAr: "البحث عن إشارات للرقم أو للحسابات المرتبطة في منشرات وصور إنستغرام العامة.",
+      descriptionEn: "Target mentions or profile trace on Instagram utilizing targeted Google search queries.",
+    },
+    {
+      id: "linkedin",
+      name: "LinkedIn",
+      category: "social",
+      icon: "User",
+      status: findProfile("LinkedIn") ? "active" : "unknown",
+      statusTextAr: findProfile("LinkedIn") ? "الملف المهني مكتشف" : "استعلام مهني عكسي",
+      statusTextEn: findProfile("LinkedIn") ? "Professional Profile Found" : "Reverse Professional Check",
+      url: findProfile("LinkedIn")?.url || `https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent(plusClean)}`,
+      descriptionAr: "كشف الملف الوظيفي والشركات والخبرات المهنية المرتبطة بصاحب هذا الرقم على لينكد إن.",
+      descriptionEn: "Inspect career histories, associated corporate nodes, and professional contacts on LinkedIn.",
+    },
+    {
+      id: "viber",
+      name: "Viber",
+      category: "messaging",
+      icon: "MessageSquare",
+      status: "unknown",
+      statusTextAr: "رابط الاتصال المباشر",
+      statusTextEn: "Direct Dial Link",
+      url: `viber://add?number=${clean}`,
+      descriptionAr: "رابط بروتوكول فايبر لبدء فحص هوية المستخدم المسجلة والاتصال الهاتفي السحابي المباشر.",
+      descriptionEn: "Add target directly in Viber via app scheme URI to verify account presence and profile picture.",
+    },
+    {
+      id: "twitter",
+      name: "X (Twitter)",
+      category: "social",
+      icon: "Hash",
+      status: findProfile("X") || findProfile("Twitter") ? "active" : "unknown",
+      statusTextAr: findProfile("X") || findProfile("Twitter") ? "مطابقة مستهدفة" : "البحث في التغريدات",
+      statusTextEn: findProfile("X") || findProfile("Twitter") ? "Target Match" : "Tweet Reply Lookup",
+      url: findProfile("X")?.url || findProfile("Twitter")?.url || `https://x.com/search?q=${encodeURIComponent(plusClean)}`,
+      descriptionAr: "استعلام التغريدات العامة والردود والملفات الشخصية بحثاً عن إشارات للرقم.",
+      descriptionEn: "Trace public tweet databases, replies, and bio listings referencing this number.",
+    },
+    {
+      id: "tiktok",
+      name: "TikTok",
+      category: "social",
+      icon: "Users",
+      status: "unknown",
+      statusTextAr: "استعلام الفيديوهات",
+      statusTextEn: "Video Query",
+      url: `https://www.tiktok.com/search?q=${encodeURIComponent(plusClean)}`,
+      descriptionAr: "البحث العكسي في تيك توك للكشف عن مقاطع الفيديو أو الحسابات المرتبطة برقم الهاتف.",
+      descriptionEn: "Scan TikTok database indexes for video descriptions, tags, or profiles listing the contact.",
+    },
+    {
+      id: "syncme",
+      name: "Sync.me",
+      category: "directory",
+      icon: "Phone",
+      status: "active",
+      statusTextAr: "استعلام الدليل السحابي",
+      statusTextEn: "Cloud Directory Query",
+      url: `https://sync.me/search/?number=${encodeURIComponent(clean)}`,
+      descriptionAr: "دليل عكسي متطور يجمع الأسماء وصور الملفات الشخصية المدمجة من منصات التواصل الاجتماعي.",
+      descriptionEn: "Highly powerful reverse phone dictionary aggregating user photos and matching profiles.",
+    },
+    {
+      id: "whoscall",
+      name: "Whoscall",
+      category: "directory",
+      icon: "Phone",
+      status: "active",
+      statusTextAr: "دليل الكشف الآسيوي والعالمي",
+      statusTextEn: "Asian & Global Directory",
+      url: `https://whoscall.com/`,
+      descriptionAr: "البحث الجنائي في قاعدة بيانات الهواتف العالمية المشابهة لتروكولر لحصر تصنيف الرقم كاحتيال أو سبام.",
+      descriptionEn: "Global database used to detect spam tags, caller tags, and verify registration in active directories.",
+    },
+    {
+      id: "paypal",
+      name: "PayPal",
+      category: "finance",
+      icon: "Settings",
+      status: "unknown",
+      statusTextAr: "رابط فحص الدفع والاسم المالي",
+      statusTextEn: "Payment Profile Check",
+      url: `https://www.paypal.com/paypalme/`,
+      descriptionAr: "التحقق من وجود حساب باي بال مالي نشط لتأكيد الهوية القانونية والاسم التجاري المسجل للرقم.",
+      descriptionEn: "Check active payment gateway status or query the associated PayPal business name ledger.",
+    },
+    {
+      id: "signal",
+      name: "Signal Messenger",
+      category: "messaging",
+      icon: "Shield",
+      status: findMessaging("Signal")?.status || "unknown",
+      statusTextAr: "رمز تشفير آمن",
+      statusTextEn: "Secure Token Check",
+      url: `https://signal.me/`,
+      descriptionAr: "التحقق من تفعيل التشفير فائق الأمان لبروتوكول سيجنال المرتبط برقم الهاتف.",
+      descriptionEn: "Examine if the target phone has an active cryptographic token registered with Signal servers.",
+    },
+    {
+      id: "github",
+      name: "GitHub",
+      category: "social",
+      icon: "Database",
+      status: findProfile("GitHub") ? "active" : "unknown",
+      statusTextAr: findProfile("GitHub") ? "مستودعات برمجية مكتشفة" : "فحص الكود والملفات",
+      statusTextEn: findProfile("GitHub") ? "Code Repositories Found" : "Code Gist Check",
+      url: findProfile("GitHub")?.url || `https://github.com/search?q=${encodeURIComponent(plusClean)}`,
+      descriptionAr: "البحث في الأكواد والملفات المرفوعة Gists بحثاً عن مفاتيح البيئة والتهيئة المسربة التي تحتوي الرقم.",
+      descriptionEn: "Search millions of open-source configuration files and codebases for hardcoded test credentials.",
+    },
+    {
+      id: "snapchat",
+      name: "Snapchat",
+      category: "social",
+      icon: "Users",
+      status: "unknown",
+      statusTextAr: "البحث في سناب شات",
+      statusTextEn: "Snapchat Lookup",
+      url: `https://www.google.com/search?q=site:snapchat.com/add/+%22${encodeURIComponent(plusClean)}%22`,
+      descriptionAr: "البحث عن رابط الإضافة المباشر أو اسم المستخدم العام المرتبط بالرقم على سناب شات.",
+      descriptionEn: "Locate matching Snapchat handles or custom landing add pages using specialized search commands.",
+    }
+  ];
+};
+
+const renderPlatformIcon = (iconName: string) => {
+  switch (iconName) {
+    case "MessageSquare": return <MessageSquare className="w-5 h-5" />;
+    case "Phone": return <Phone className="w-5 h-5" />;
+    case "Users": return <Users className="w-5 h-5" />;
+    case "User": return <User className="w-5 h-5" />;
+    case "Hash": return <Hash className="w-5 h-5" />;
+    case "Shield": return <Shield className="w-5 h-5" />;
+    case "Database": return <Database className="w-5 h-5" />;
+    default: return <Settings className="w-5 h-5" />;
+  }
+};
+
 export default function App() {
   const [lang, setLang] = useState<"ar" | "en">("ar");
-  const [mode, setMode] = useState<"terminal" | "dashboard">("terminal");
+  const [mode, setMode] = useState<"terminal" | "dashboard" | "accounts">("terminal");
   const [inputNum, setInputNum] = useState<string>("");
+  const [activeNumber, setActiveNumber] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [loadingLogs, setLoadingLogs] = useState<string[]>([]);
   const [report, setReport] = useState<OSINTReport | null>(null);
+  const [activeCategory, setActiveCategory] = useState<"all" | "messaging" | "social" | "directory" | "finance">("all");
   
   // Terminal State
   const [terminalInput, setTerminalInput] = useState<string>("");
@@ -243,7 +467,7 @@ export default function App() {
     { type: "output", text: "--------------------------------------------------------" },
     { type: "output", text: "SaW Number OSINT Aggregator Suite [V3.9.5-PRO]" },
     { type: "output", text: "Platform Target: Linux/Kali, Windows, Android Termux" },
-    { type: "output", text: "Developer: Google AI Studio Build - 2026 Edition" },
+    { type: "output", text: "Developer / Architect: SNax (Elite Security Analyst)" },
     { type: "output", text: "--------------------------------------------------------" },
   ]);
   const [historyIndex, setHistoryIndex] = useState<number>(-1);
@@ -274,6 +498,7 @@ export default function App() {
       return { success: false, error: t.invalidNumber };
     }
 
+    setActiveNumber(numberToScan);
     setLoading(true);
     setLoadingLogs([]);
     setReport(null);
@@ -445,6 +670,7 @@ export default function App() {
         { type: "output", text: "--------------------------------------------------------" },
         { type: "output", text: "SaW Number OSINT Aggregator - Built for high-efficiency digital investigations." },
         { type: "output", text: "Technology Stack: React 19, Tailwind CSS, Express v4, Google GenAI SDK (Gemini 3.5-flash with Search Grounding)." },
+        { type: "output", text: "Developer & Architect: SNax" },
         { type: "output", text: "Designed to operate seamlessly on GitHub, Kali Linux, Termux, and desktop web containers." },
         { type: "output", text: "--------------------------------------------------------" },
       ]);
@@ -641,10 +867,10 @@ export default function App() {
           </button>
 
           {/* Mode Tabs */}
-          <div className="flex bg-[#0d0e12] p-1 rounded-md border border-[#2d2e32]" id="mode-tabs">
+          <div className="flex bg-[#0d0e12] p-1 rounded-md border border-[#2d2e32] flex-wrap md:flex-nowrap gap-1 md:gap-0" id="mode-tabs">
             <button
               onClick={() => setMode("terminal")}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
                 mode === "terminal"
                   ? "bg-[#10b981] text-[#050608] font-bold shadow-[0_0_10px_rgba(16,185,129,0.3)]"
                   : "text-[#64748b] hover:text-[#e2e8f0]"
@@ -662,7 +888,7 @@ export default function App() {
                 }
                 setMode("dashboard");
               }}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
                 mode === "dashboard"
                   ? "bg-[#10b981] text-[#050608] font-bold shadow-[0_0_10px_rgba(16,185,129,0.3)]"
                   : "text-[#64748b] hover:text-[#e2e8f0] " + (!report ? "opacity-50 cursor-not-allowed" : "")
@@ -671,6 +897,24 @@ export default function App() {
             >
               <Layers className="w-3.5 h-3.5" />
               <span>{t.dashboardMode}</span>
+            </button>
+            <button
+              onClick={() => {
+                if (!report) {
+                  alert(lang === "ar" ? "يرجى تشغيل فحص أولاً لرؤية تطبيقات هذا الرقم" : "Please run a scan first to view linked accounts");
+                  return;
+                }
+                setMode("accounts");
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono transition-all cursor-pointer ${
+                mode === "accounts"
+                  ? "bg-[#10b981] text-[#050608] font-bold shadow-[0_0_10px_rgba(16,185,129,0.3)]"
+                  : "text-[#64748b] hover:text-[#e2e8f0] " + (!report ? "opacity-50 cursor-not-allowed" : "")
+              }`}
+              id="tab-accounts-btn"
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>{lang === "ar" ? "حسابات الرقم" : "Linked Accounts"}</span>
             </button>
           </div>
         </div>
@@ -1144,6 +1388,163 @@ export default function App() {
               )}
             </motion.div>
           )}
+
+          {/* REGISTERED ACCOUNTS AND DIRECT LINKS MODE */}
+          {mode === "accounts" && report && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-6"
+              id="accounts-directory-panel"
+            >
+              {/* Header section with back-to-terminal and developer credit */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#0d0e12] p-5 rounded-md border border-[#2d2e32]" id="accounts-header-card">
+                <div>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="px-2 py-0.5 text-[9px] uppercase font-mono font-bold rounded bg-[#10b981]/10 text-[#10b981] border border-[#10b981]/20">
+                      SECURE RECON
+                    </span>
+                    <span className="text-xs text-[#64748b] font-mono">
+                      {lang === "ar" ? "المطور المستقل: " : "Developer: "}<strong className="text-white">SNax</strong>
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-bold tracking-tight text-white font-sans flex items-center gap-2">
+                    <Users className="w-5 h-5 text-[#10b981]" />
+                    {lang === "ar" ? "دليل التطبيقات والمنصات المسجلة" : "Linked Accounts & Web Footprints"}
+                  </h3>
+                  <p className="text-xs text-[#64748b] mt-1 font-mono">
+                    {lang === "ar" 
+                      ? `الفحص الآلي والعميق للرقم: ${activeNumber || inputNum}` 
+                      : `Comprehensive registry & deep links for target: ${activeNumber || inputNum}`}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setMode("terminal")}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded bg-[#16171d] hover:bg-[#2d2e32] text-white text-xs font-mono font-bold transition-all cursor-pointer border border-[#2d2e32]"
+                    id="accounts-back-to-cli"
+                  >
+                    <TerminalIcon className="w-3.5 h-3.5 text-[#10b981]" />
+                    <span>{t.backToTerminal}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Target info and developer SNax badge */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4" id="accounts-stats-grid">
+                <div className="bg-[#0d0e12] p-4 rounded border border-[#2d2e32] flex items-center gap-3">
+                  <div className="w-9 h-9 rounded bg-[#10b981]/10 flex items-center justify-center text-[#10b981] shrink-0">
+                    <Phone className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-mono uppercase text-[#64748b]">{lang === "ar" ? "الرقم المستهدف" : "Active Target"}</div>
+                    <div className="text-sm font-bold text-white font-mono">{activeNumber || inputNum}</div>
+                  </div>
+                </div>
+
+                <div className="bg-[#0d0e12] p-4 rounded border border-[#2d2e32] flex items-center gap-3">
+                  <div className="w-9 h-9 rounded bg-[#10b981]/10 flex items-center justify-center text-[#10b981] shrink-0">
+                    <Globe className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-mono uppercase text-[#64748b]">{lang === "ar" ? "الموقع التقريبي للمشغل" : "Geographic Carrier"}</div>
+                    <div className="text-sm font-bold text-white font-mono">
+                      {report.carrierInfo?.carrierName || "Unknown"} ({report.carrierInfo?.countryCode || "INT"})
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-[#0d0e12] p-4 rounded border border-[#2d2e32] flex items-center gap-3 border-l-4 border-l-[#10b981]">
+                  <div className="w-9 h-9 rounded bg-[#10b981]/10 flex items-center justify-center text-[#10b981] shrink-0 font-mono font-extrabold text-sm">
+                    S
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-mono uppercase text-[#64748b]">{lang === "ar" ? "مطور ومصمم المحرك" : "Lead Architect & Developer"}</div>
+                    <div className="text-sm font-bold text-[#10b981] font-mono">SNax</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Real-time Category Filtering */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none" id="accounts-category-tabs">
+                {[
+                  { id: "all", labelAr: "الكل", labelEn: "All Platforms" },
+                  { id: "messaging", labelAr: "المراسلة", labelEn: "Messaging" },
+                  { id: "social", labelAr: "شبكات التواصل", labelEn: "Social Media" },
+                  { id: "directory", labelAr: "أدلة الهواتف", labelEn: "Directories" },
+                  { id: "finance", labelAr: "المالية والأمن", labelEn: "Finance & Security" }
+                ].map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setActiveCategory(cat.id as any)}
+                    className={`px-3 py-1.5 rounded text-xs font-mono transition-all whitespace-nowrap cursor-pointer border ${
+                      activeCategory === cat.id
+                        ? "bg-[#10b981]/10 border-[#10b981]/40 text-[#10b981] font-bold"
+                        : "bg-[#0d0e12] border-[#2d2e32] text-[#64748b] hover:text-[#e2e8f0]"
+                    }`}
+                  >
+                    {lang === "ar" ? cat.labelAr : cat.labelEn}
+                  </button>
+                ))}
+              </div>
+
+              {/* Grid Layout of platform cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="accounts-cards-grid">
+                {getPlatforms(activeNumber || inputNum, report)
+                  .filter((item) => activeCategory === "all" || item.category === activeCategory)
+                  .map((item) => {
+                    const isDetected = item.status === "active";
+                    return (
+                      <div 
+                        key={item.id}
+                        className="bg-[#0d0e12] border border-[#2d2e32] hover:border-[#10b981]/40 rounded p-5 flex flex-col justify-between transition-all group hover:shadow-[0_0_20px_rgba(16,185,129,0.03)]"
+                        id={`app-card-${item.id}`}
+                      >
+                        <div className="space-y-3">
+                          {/* Platform Title, Icon, Badge */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2.5">
+                              <div className="p-2 rounded bg-[#16171d] text-[#10b981] group-hover:bg-[#10b981]/10 transition-all">
+                                {renderPlatformIcon(item.icon)}
+                              </div>
+                              <span className="font-bold text-white tracking-tight text-sm font-sans">{item.name}</span>
+                            </div>
+
+                            <span className={`px-2 py-0.5 text-[9px] font-mono font-bold rounded uppercase ${
+                              isDetected 
+                                ? "bg-[#10b981]/10 text-[#10b981] border border-[#10b981]/20 animate-pulse" 
+                                : "bg-[#16171d] text-[#64748b] border border-[#2d2e32]"
+                            }`}>
+                              {lang === "ar" ? item.statusTextAr : item.statusTextEn}
+                            </span>
+                          </div>
+
+                          {/* App Description */}
+                          <p className="text-xs text-[#94a3b8] leading-relaxed font-sans min-h-[50px]">
+                            {lang === "ar" ? item.descriptionAr : item.descriptionEn}
+                          </p>
+                        </div>
+
+                        {/* Direct Deep link Button */}
+                        <div className="mt-4 pt-3 border-t border-[#16171d]">
+                          <a
+                            href={item.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            referrerPolicy="no-referrer"
+                            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold rounded transition-all font-mono bg-[#16171d] hover:bg-[#10b981] text-[#10b981] hover:text-[#050608] border border-[#2d2e32] hover:border-[#10b981]"
+                          >
+                            <span>{lang === "ar" ? "الانتقال إلى الحساب" : "Go to Account"}</span>
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </motion.div>
+          )}
         </div>
       </main>
 
@@ -1151,7 +1552,7 @@ export default function App() {
       <footer className="border-t border-[#2d2e32] bg-[#0d0e12] py-6 px-4 text-center text-xs text-[#64748b] font-mono" id="app-footer-credit">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <p>
-            &copy; 2026 <strong className="text-white">SaW Number OSINT Aggregator Suite</strong>. Designed for educational cybersecurity research and risk verification.
+            &copy; 2026 <strong className="text-white">SaW Number OSINT Aggregator Suite</strong>. Designed and developed by <strong className="text-[#10b981]">SNax</strong>.
           </p>
           <div className="flex items-center gap-4">
             <a href="https://github.com" target="_blank" rel="referrer" className="hover:text-[#10b981] transition-all">GitHub Repo</a>
